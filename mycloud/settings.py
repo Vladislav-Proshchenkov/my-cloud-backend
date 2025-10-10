@@ -135,6 +135,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
 }
 
 CORS_ALLOWED_ORIGINS = [
@@ -158,3 +162,11 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = 'users.CustomUser'
+
+LANGUAGE_CODE = 'ru-ru'
+TIME_ZONE = 'Europe/Moscow'
+USE_I18N = True
+USE_L10N = True
+USE_TZ = True
+
+DEFAULT_CHARSET = 'utf-8'

@@ -27,3 +27,9 @@ class UserFile(models.Model):
         if not self.size and self.file:
             self.size = self.file.size
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.file:
+            if os.path.isfile(self.file.path):
+                os.remove(self.file.path)
+        super().delete(*args, **kwargs)
