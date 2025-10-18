@@ -16,11 +16,9 @@ class UserFileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_admin:
-            user_id = self.request.query_params.get('user_id')
-            if user_id:
-                return UserFile.objects.filter(user_id=user_id)
-            return UserFile.objects.all()
+        user_id = self.request.query_params.get('user_id')
+        if user_id and user.is_admin:
+            return UserFile.objects.filter(user_id=user_id)
         else:
             return UserFile.objects.filter(user=user)
 
