@@ -81,3 +81,13 @@ class UserFileViewSet(viewsets.ModelViewSet):
         filename_header = f"attachment; filename*=utf-8''{user_file.original_name}"
         response['Content-Disposition'] = filename_header
         return response
+
+    @action(detail=True, methods=['patch'])
+    def update_info(self, request, pk=None):
+        user_file = self.get_object()
+        serializer = UserFileUpdateSerializer(user_file, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

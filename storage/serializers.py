@@ -19,4 +19,4 @@ class UserFileUploadSerializer(serializers.ModelSerializer):
 class UserFileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserFile
-        fields = ('comment',)
+        fields = ('original_name','comment')
