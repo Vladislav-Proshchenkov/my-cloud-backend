@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import login, logout, authenticate
 from django.shortcuts import get_object_or_404
+from django.db.models import Count, Sum
+from storage.models import UserFile
 from .models import CustomUser
 from .serializers import UserRegistrationSerializer, UserSerializer
 from .permissions import IsAdminUser
@@ -54,4 +56,23 @@ class UserViewSet(viewsets.ModelViewSet):
         action = 'назначен' if user.is_admin else 'снят'
         return Response({
             'message': f'Пользователю {user.username} {action} статус администратора'
+        })
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        users_stats = CustomUser.objects.annotate(
+            file_count=Count('userfile'),
+            total_size=Sum('userfile__size')
+        ).values('id', 'username', 'file_count', 'total_size')
+
+        total_stats = {
+            'total_users': CustomUser.objects.count(),
+            'total_files': UserFile.objects.count(),
+            'total_storage_used': UserFile.objects.aggregate(Sum('size'))['size__sum'] or 0,
+            'admin_count': CustomUser.objects.filter(is_admin=True).count(),
+        }
+
+        return Response({
+            'users_stats': list(users_stats),
+            'total_stats': total_stats
         })
