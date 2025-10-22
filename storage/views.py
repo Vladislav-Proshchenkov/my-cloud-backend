@@ -2,6 +2,7 @@ from django.shortcuts import render
 import os
 from django.http import FileResponse
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -67,7 +68,7 @@ class UserFileViewSet(viewsets.ModelViewSet):
     def generate_link(self, request, pk=None):
         user_file = self.get_object()
         return Response({
-            'public_url': f'/api/storage/files/public/{user_file.unique_identifier}/'
+            'public_url': f'/file/{user_file.unique_identifier}'
         })
 
     @action(detail=True, methods=['get'])
@@ -77,7 +78,6 @@ class UserFileViewSet(viewsets.ModelViewSet):
         user_file.save()
 
         response = FileResponse(user_file.file.open('rb'))
-        # Правильное кодирование имени файла для русского языка
         filename_header = f"attachment; filename*=utf-8''{user_file.original_name}"
         response['Content-Disposition'] = filename_header
         return response
@@ -91,3 +91,26 @@ class UserFileViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='public/(?P<unique_identifier>[^/.]+)/info', url_name='public-info')
+    def public_info(self, request, unique_identifier=None):
+        try:
+            user_file = UserFile.objects.get(unique_identifier=unique_identifier)
+            serializer = self.get_serializer(user_file)
+            return Response(serializer.data)
+        except UserFile.DoesNotExist:
+            return Response({'error': 'Файл не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'], url_path='public/(?P<unique_identifier>[^/.]+)/download',
+            url_name='public-download')
+    def public_download(self, request, unique_identifier=None):
+        try:
+            user_file = UserFile.objects.get(unique_identifier=unique_identifier)
+            user_file.last_download = timezone.now()
+            user_file.save()
+
+            response = FileResponse(user_file.file.open('rb'))
+            response['Content-Disposition'] = f'attachment; filename="{user_file.original_name}"'
+            return response
+        except UserFile.DoesNotExist:
+            return Response({'error': 'Файл не найден'}, status=status.HTTP_404_NOT_FOUND)
