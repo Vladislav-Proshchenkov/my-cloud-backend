@@ -114,3 +114,32 @@ class UserFileViewSet(viewsets.ModelViewSet):
             return response
         except UserFile.DoesNotExist:
             return Response({'error': 'Файл не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'])
+    def preview(self, request, pk=None):
+        user_file = self.get_object()
+
+        content_type = 'application/octet-stream'
+        if user_file.original_name.lower().endswith(('.txt', '.pdf', '.jpg', '.jpeg', '.png', '.gif')):
+            if user_file.original_name.lower().endswith('.txt'):
+                content_type = 'text/plain'
+            elif user_file.original_name.lower().endswith('.pdf'):
+                content_type = 'application/pdf'
+            elif user_file.original_name.lower().endswith(('.jpg', '.jpeg')):
+                content_type = 'image/jpeg'
+            elif user_file.original_name.lower().endswith('.png'):
+                content_type = 'image/png'
+            elif user_file.original_name.lower().endswith('.gif'):
+                content_type = 'image/gif'
+
+        user_file.last_download = timezone.now()
+        user_file.save()
+
+        response = FileResponse(user_file.file.open('rb'), content_type=content_type)
+
+        if content_type == 'application/octet-stream':
+            response['Content-Disposition'] = f'attachment; filename="{user_file.original_name}"'
+        else:
+            response['Content-Disposition'] = f'inline; filename="{user_file.original_name}"'
+
+        return response
