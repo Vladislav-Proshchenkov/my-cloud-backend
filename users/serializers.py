@@ -37,11 +37,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if not re.search(r'[A-Z]', value):
             raise serializers.ValidationError('Пароль должен содержать хотя бы одну заглавную букву')
 
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError('Пароль должен содержать хотя бы одну строчную букву')
+
         if not re.search(r'\d', value):
             raise serializers.ValidationError('Пароль должен содержать хотя бы одну цифру')
 
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
             raise serializers.ValidationError('Пароль должен содержать хотя бы один специальный символ')
+
+        validate_password(value)
 
         return value
 

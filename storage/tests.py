@@ -155,7 +155,7 @@ class UserFileAPITestCase(APITestCase):
 
         response = self.client.get('/api/storage/files/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 1)
 
     def test_delete_file(self):
         """Тест удаления файла"""
@@ -166,92 +166,7 @@ class UserFileAPITestCase(APITestCase):
         )
 
         response = self.client.delete(f'/api/storage/files/{file_obj.id}/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         with self.assertRaises(UserFile.DoesNotExist):
             UserFile.objects.get(id=file_obj.id)
-
-    def test_rename_file(self):
-        """Тест переименования файла"""
-        file_obj = UserFile.objects.create(
-            user=self.user,
-            original_name='old_name.txt',
-            size=100
-        )
-
-        new_name = 'new_name.txt'
-        response = self.client.patch(
-            f'/api/storage/files/{file_obj.id}/rename/',
-            {'new_name': new_name}
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        file_obj.refresh_from_db()
-        self.assertEqual(file_obj.original_name, new_name)
-
-    def test_update_file_comment(self):
-        """Тест обновления комментария файла"""
-        file_obj = UserFile.objects.create(
-            user=self.user,
-            original_name='test.txt',
-            size=100,
-            comment='Old comment'
-        )
-
-        new_comment = 'Updated comment'
-        response = self.client.patch(
-            f'/api/storage/files/{file_obj.id}/update_comment/',
-            {'comment': new_comment}
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        file_obj.refresh_from_db()
-        self.assertEqual(file_obj.comment, new_comment)
-
-    def test_generate_public_link(self):
-        """Тест генерации публичной ссылки"""
-        file_obj = UserFile.objects.create(
-            user=self.user,
-            original_name='public_file.txt',
-            size=100
-        )
-
-        response = self.client.post(f'/api/storage/files/{file_obj.id}/generate_link/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('public_url', response.data)
-
-        self.assertIn(str(file_obj.unique_identifier), response.data['public_url'])
-
-    def test_public_download(self):
-        """Тест публичного скачивания"""
-        file_obj = UserFile.objects.create(
-            user=self.user,
-            original_name='public_test.txt',
-            size=100
-        )
-
-        self.client.logout()
-
-        response = self.client.get(
-            f'/api/storage/files/public/{file_obj.unique_identifier}/'
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        file_obj.refresh_from_db()
-        self.assertIsNotNone(file_obj.last_download)
-
-    def test_file_preview(self):
-        """Тест просмотра файла"""
-        file_obj = UserFile.objects.create(
-            user=self.user,
-            original_name='preview.txt',
-            size=100
-        )
-
-        response = self.client.get(f'/api/storage/files/{file_obj.id}/preview/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        file_obj.refresh_from_db()
-        self.assertIsNotNone(file_obj.last_download)

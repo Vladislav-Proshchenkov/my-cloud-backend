@@ -23,6 +23,11 @@ class UserFileViewSet(viewsets.ModelViewSet):
         else:
             return UserFile.objects.filter(user=user)
 
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return UserFileUploadSerializer
@@ -64,24 +69,6 @@ class UserFileViewSet(viewsets.ModelViewSet):
         except UserFile.DoesNotExist:
             return Response({'error': 'Файл не найден'}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=True, methods=['post'])
-    def generate_link(self, request, pk=None):
-        user_file = self.get_object()
-        return Response({
-            'public_url': f'/file/{user_file.unique_identifier}'
-        })
-
-    @action(detail=True, methods=['get'])
-    def download(self, request, pk=None):
-        user_file = self.get_object()
-        user_file.last_download = timezone.now()
-        user_file.save()
-
-        response = FileResponse(user_file.file.open('rb'))
-        filename_header = f"attachment; filename*=utf-8''{user_file.original_name}"
-        response['Content-Disposition'] = filename_header
-        return response
-
     @action(detail=True, methods=['patch'])
     def update_info(self, request, pk=None):
         user_file = self.get_object()
@@ -119,6 +106,12 @@ class UserFileViewSet(viewsets.ModelViewSet):
     def preview(self, request, pk=None):
         user_file = self.get_object()
 
+        if not user_file.file:
+            return Response(
+                {"error": "Файл не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         content_type = 'application/octet-stream'
         if user_file.original_name.lower().endswith(('.txt', '.pdf', '.jpg', '.jpeg', '.png', '.gif')):
             if user_file.original_name.lower().endswith('.txt'):
@@ -143,3 +136,26 @@ class UserFileViewSet(viewsets.ModelViewSet):
             response['Content-Disposition'] = f'inline; filename="{user_file.original_name}"'
 
         return response
+
+    @action(detail=True, methods=['post'])
+    def share(self, request, pk=None):
+        user_file = self.get_object()
+        user_file.is_public = True
+        user_file.save()
+        return Response({
+            'public_url': f'/file/{user_file.unique_identifier}'
+        })
+
+    def create_share(self, request, pk=None):
+        user_file = self.get_object()
+        user_file.is_public = True
+        user_file.save()
+        return Response({
+            'public_url': f'/api/public/files/{user_file.unique_identifier}/'
+        })
+
+    def delete_share(self, request, pk=None):
+        user_file = self.get_object()
+        user_file.is_public = False
+        user_file.save()
+        return Response({'message': 'Публичная ссылка удалена'})

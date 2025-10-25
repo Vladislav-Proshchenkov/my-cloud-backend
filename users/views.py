@@ -48,16 +48,6 @@ class UserViewSet(viewsets.ModelViewSet):
         logout(request)
         return Response({'message': 'Успешный выход из системы'})
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdminUser])
-    def toggle_admin(self, request, pk=None):
-        user = get_object_or_404(CustomUser, pk=pk)
-        user.is_admin = not user.is_admin
-        user.save()
-        action = 'назначен' if user.is_admin else 'снят'
-        return Response({
-            'message': f'Пользователю {user.username} {action} статус администратора'
-        })
-
     @action(detail=False, methods=['get'])
     def stats(self, request):
         users_stats = CustomUser.objects.annotate(
@@ -75,4 +65,15 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response({
             'users_stats': list(users_stats),
             'total_stats': total_stats
+        })
+
+    @action(detail=True, methods=['patch'])
+    def admin_status(self, request, pk=None):
+        user = get_object_or_404(CustomUser, pk=pk)
+        user.is_admin = not user.is_admin
+        user.save()
+        action = 'назначен' if user.is_admin else 'снят'
+        return Response({
+            'message': f'Пользователю {user.username} {action} статус администратора',
+            'is_admin': user.is_admin
         })
