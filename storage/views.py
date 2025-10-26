@@ -159,3 +159,43 @@ class UserFileViewSet(viewsets.ModelViewSet):
         user_file.is_public = False
         user_file.save()
         return Response({'message': 'Публичная ссылка удалена'})
+
+    @action(detail=False, methods=['get'], url_path='public/(?P<unique_identifier>[^/.]+)/preview',
+            url_name='public-preview', permission_classes=[])
+    def public_preview(self, request, unique_identifier=None):
+        try:
+            user_file = UserFile.objects.get(unique_identifier=unique_identifier, is_public=True)
+
+            if not user_file.file:
+                return Response(
+                    {"error": "Файл не найден"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            content_type = 'application/octet-stream'
+            if user_file.original_name.lower().endswith(('.txt', '.pdf', '.jpg', '.jpeg', '.png', '.gif')):
+                if user_file.original_name.lower().endswith('.txt'):
+                    content_type = 'text/plain'
+                elif user_file.original_name.lower().endswith('.pdf'):
+                    content_type = 'application/pdf'
+                elif user_file.original_name.lower().endswith(('.jpg', '.jpeg')):
+                    content_type = 'image/jpeg'
+                elif user_file.original_name.lower().endswith('.png'):
+                    content_type = 'image/png'
+                elif user_file.original_name.lower().endswith('.gif'):
+                    content_type = 'image/gif'
+
+            user_file.last_download = timezone.now()
+            user_file.save()
+
+            response = FileResponse(user_file.file.open('rb'), content_type=content_type)
+
+            if content_type == 'application/octet-stream':
+                response['Content-Disposition'] = f'attachment; filename="{user_file.original_name}"'
+            else:
+                response['Content-Disposition'] = f'inline; filename="{user_file.original_name}"'
+
+            return response
+
+        except UserFile.DoesNotExist:
+            return Response({'error': 'Файл не найден'}, status=status.HTTP_404_NOT_FOUND)
