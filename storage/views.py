@@ -4,12 +4,51 @@ from django.http import FileResponse
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.decorators import user_passes_test
 from .models import UserFile
 from .serializers import UserFileSerializer, UserFileUploadSerializer, UserFileUpdateSerializer
 from .permissions import IsOwnerOrAdmin
+
+
+def is_admin(user):
+    return user.is_staff or user.is_admin
+
+
+@api_view(['GET'])
+@user_passes_test(is_admin)
+def admin_files(request):
+    user_id = request.query_params.get('user_id')
+
+    if user_id:
+        files = UserFile.objects.filter(user_id=user_id)
+    else:
+        files = UserFile.objects.all()
+
+    serializer = UserFileSerializer(files, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_user_files(request, user_id):
+    try:
+        if not request.user.is_staff and not getattr(request.user, 'is_admin', False):
+            return Response({'error': 'Недостаточно прав'}, status=status.HTTP_403_FORBIDDEN)
+
+        print(f"DEBUG: Admin {request.user.username} accessing files for user_id: {user_id}")
+
+        files = UserFile.objects.filter(user_id=user_id)
+        print(f"DEBUG: Found {files.count()} files")
+
+        serializer = UserFileSerializer(files, many=True)
+        return Response(serializer.data)
+
+    except Exception as e:
+        print(f"Error in admin_user_files: {str(e)}")
+        return Response({'error': 'Внутренняя ошибка сервера'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UserFileViewSet(viewsets.ModelViewSet):
@@ -18,9 +57,23 @@ class UserFileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         user_id = self.request.query_params.get('user_id')
-        if user_id and user.is_admin:
-            return UserFile.objects.filter(user_id=user_id)
+
+        print(f"=== DEBUG get_queryset ===")
+        print(f"User: {user.username}, is_staff: {user.is_staff}")
+        print(f"Action: {self.action}")
+        print(f"Path: {self.request.path}")
+        print(f"User ID param: {user_id}")
+
+        if user.is_staff or getattr(user, 'is_admin', False):
+            print("DEBUG: Admin access - returning all files")
+            if self.action in ['download', 'preview', 'update', 'partial_update', 'destroy']:
+                return UserFile.objects.all()
+            elif user_id:
+                return UserFile.objects.filter(user_id=user_id)
+            else:
+                return UserFile.objects.all()
         else:
+            print("DEBUG: Regular user access - returning own files")
             return UserFile.objects.filter(user=user)
 
     def list(self, request):

@@ -60,7 +60,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(**validated_data)
         return user
 
+
 class UserSerializer(serializers.ModelSerializer):
+    date_joined = serializers.DateTimeField(read_only=True)
+
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_admin')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_admin', 'date_joined')

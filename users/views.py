@@ -77,3 +77,14 @@ class UserViewSet(viewsets.ModelViewSet):
             'message': f'Пользователю {user.username} {action} статус администратора',
             'is_admin': user.is_admin
         })
+
+    @action(detail=True, methods=['delete'])
+    def delete_user(self, request, pk=None):
+        user = self.get_object()
+        if user == request.user:
+            return Response(
+                {'error': 'Нельзя удалить самого себя'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.delete()
+        return Response({'message': 'Пользователь удален'})

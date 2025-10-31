@@ -10,9 +10,8 @@
 - Node.js 18+ (для фронтенда)
 
 Клонирование репозитория
-bash
-git clone <repository-url>
-cd my-cloud-backend
+git clone https://github.com/Vladislav-Proshchenkov/my-cloud-backend
+https://github.com/Vladislav-Proshchenkov/my-cloud-frontend
 
 2. Настройка виртуального окружения
 bash
@@ -53,3 +52,15 @@ python manage.py createsuperuser
 8. Запуск сервера
 bash
 python manage.py runserver
+
+9. cd ../my-cloud-frontend
+
+10. Устанавливаем зависимости
+npm install
+
+11. Собираем для продакшена
+npm run build
+
+12. Запуск frontend
+cd ../my-cloud-frontend
+npm start

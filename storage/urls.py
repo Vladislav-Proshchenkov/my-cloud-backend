@@ -11,6 +11,13 @@ urlpatterns = [
     path('api/storage/files/<int:pk>/download/',
          views.UserFileViewSet.as_view({'get': 'download'}),
          name='file-download'),
+
+    # Используем функцию для администратора
+    path('api/storage/admin/users/<int:user_id>/files/',
+         views.admin_user_files,
+         name='admin-user-files'),
+
+    path('api/storage/admin/files/', views.admin_files, name='admin-files'),
     path('api/storage/files/<int:pk>/preview/',
          views.UserFileViewSet.as_view({'get': 'preview'}),
          name='file-preview'),

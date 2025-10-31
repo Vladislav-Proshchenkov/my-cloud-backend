@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/auth/logout/', views.UserViewSet.as_view({'post': 'logout'}), name='logout'),
     path('api/auth/register/', views.UserViewSet.as_view({'post': 'register'}), name='register'),
     path('api/stats/', views.UserViewSet.as_view({'get': 'stats'}), name='stats'),
+    path('api/users/<int:pk>/delete/', views.UserViewSet.as_view({'delete': 'delete_user'}), name='delete-user'),
 ]
